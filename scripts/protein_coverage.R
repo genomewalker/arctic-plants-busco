@@ -6,8 +6,6 @@ library(lvplot)
 
 source("libs/libs.R")
 
-wdir <- "/vol/cloud/antonio/geogenetics/plant-arctic/results/mg_TO"
-
 db <- "data/traits-search.sqlite"
 
 con <- RSQLite::dbConnect(RSQLite::SQLite(), db)
@@ -28,17 +26,7 @@ busco_viridiplantae_multi_covs <- busco_viridiplantae_multi %>%
   arrange(protein, start, end) %>%
   setkeyv(., c("label", "protein"))
 
-n_groups <- busco_viridiplantae_multi_covs %>% 
-  dt_select(label, protein) %>% 
-  unique() %>% 
-  nrow()
-
-pb <- txtProgressBar(min = 0, max = n_groups, style = 3)
-busco_viridiplantae_multi_covs <- busco_viridiplantae_multi_covs[, {
-  setTxtProgressBar(pb, .GRP);
-  calculate_subject_coverage_dt(.SD);
-}, by = list(label, protein), .SDcols = c("start", "end", "len")] 
-close(pb)
+busco_viridiplantae_multi_covs <- get_protein_coverage(busco_viridiplantae_multi_covs)
 
 # Fungi -------------------------------------------------------------------
 busco_fungi <- tbl(con, "busco_fungi") %>%
@@ -51,20 +39,9 @@ busco_fungi_multi_covs <- busco_fungi_multi %>%
   dt_select(label, theader, tstart, tend, tlen) %>%
   setNames(c("label", "protein", "start", "end", "len")) %>%
   let(strand = "+") %>%
-  arrange(protein, start, end) %>%
   setkeyv(., c("label", "protein"))
 
-n_groups <- busco_fungi_multi_covs %>% 
-  dt_select(label, protein) %>% 
-  unique() %>% 
-  nrow()
-
-pb <- txtProgressBar(min = 0, max = n_groups, style = 3)
-busco_fungi_multi_covs <- busco_fungi_multi_covs[, {
-  setTxtProgressBar(pb, .GRP);
-  calculate_subject_coverage_dt(.SD);
-}, by = list(label, protein), .SDcols = c("start", "end", "len")] 
-close(pb)
+busco_fungi_multi_covs <- get_protein_coverage(busco_fungi_multi_covs)
 
 # Microbial traits --------------------------------------------------------
 protein_traits <- tbl(con, "protein_traits") %>%
@@ -80,18 +57,7 @@ protein_traits_multi_covs <- protein_traits_multi %>%
   arrange(protein, start, end) %>%
   setkeyv(., c("label", "protein"))
 
-n_groups <- protein_traits_multi_covs %>% 
-  dt_select(label, protein) %>% 
-  unique() %>% 
-  nrow()
-
-pb <- txtProgressBar(min = 0, max = n_groups, style = 3)
-protein_traits_multi_covs <- protein_traits_multi_covs[, {
-  setTxtProgressBar(pb, .GRP);
-  calculate_subject_coverage_dt(.SD);
-}, by = list(label, protein), .SDcols = c("start", "end", "len")] 
-close(pb)
-
+protein_traits_multi_covs <- get_protein_coverage(protein_traits_multi_covs)
 
 # Plotting ----------------------------------------------------------------
 busco_viridiplantae_plots <- plot_alns(busco_viridiplantae_multi_covs, title = "Viriplantae")

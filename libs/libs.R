@@ -157,17 +157,17 @@ plot_alns <- function(X, title = NULL){
            n = length(int_diff %>% filter(step >= X) %>% .$diff))
   }
   
-  idx <- map_dfr(int_zeroes1$step, find_longest_zeroes, int_diff = int_diff1) %>%
+  idx <- map_dfr(int_zeroes$step, find_longest_zeroes, int_diff = int_diff) %>%
     filter(median == 0) %>%
     arrange(step) %>%
     head(1)
   
   if(is_empty(idx$step)){
     int_sel <- int[with(int,diff(sd)/diff(n)) %>%
-                 enframe(name = "step", value = "diff") %>%
-                 filter(diff == 0) %>%
-                 slice(which.min(step)) %>%
-                 head(1) %>% .$step,]
+                     enframe(name = "step", value = "diff") %>%
+                     filter(diff == 0) %>%
+                     slice(which.min(step)) %>%
+                     head(1) %>% .$step,]
   }else{
     int_sel <- int[idx$step, ]
   }
@@ -227,3 +227,22 @@ plot_alns <- function(X, title = NULL){
   
   list(mode = mode_val, cutoff_val = cutoff,  X_mode = X_mode, X_cut = X_cut, plot_mode = plot_mode, plot_box = plot_box, n_prots = nrow(protein_order), plot_int = plot_int, depth_int = int, depth_int_diff = int_diff)
 }
+
+get_protein_coverage <- function(X){
+  n_groups <- X %>% 
+    dt_select(label, protein) %>% 
+    unique() %>% 
+    nrow()
+  
+  pb <- txtProgressBar(min = 0, max = n_groups, style = 3)
+  X <- X[, {
+    setTxtProgressBar(pb, .GRP);
+    calculate_subject_coverage_dt(.SD);
+  }, by = list(label, protein), .SDcols = c("start", "end", "len")] 
+  close(pb)  
+  return(X)
+}
+
+
+
+
