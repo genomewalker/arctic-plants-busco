@@ -2,9 +2,6 @@ library(RSQLite)
 library(tidyverse)
 library(janitor)
 
-Sys.setenv(RENV_PATHS_CACHE = "/vol/cloud/antonio/tmp/renv/cache")
-unixtools::set.tempdir(path.expand("/vol/cloud/antonio/tmp"))
-
 wdir <- "/vol/cloud/antonio/geogenetics/plant-arctic/results/mg_TO"
 
 db <- "data/traits-search.sqlite"

@@ -903,18 +903,6 @@
       "Repository": "CRAN",
       "Hash": "a4b9662282097d1033c60420dcb83350"
     },
-    "unixtools": {
-      "Package": "unixtools",
-      "Version": "0.1-1",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "s-u",
-      "RemoteRepo": "unixtools",
-      "RemoteRef": "master",
-      "RemoteSha": "ba719371c2a254e5663219741884c73e22aa96e5",
-      "Hash": "9e3962d7cf353d9d748d4793450f7711"
-    },
     "utf8": {
       "Package": "utf8",
       "Version": "1.1.4",

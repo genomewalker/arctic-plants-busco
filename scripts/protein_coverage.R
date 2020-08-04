@@ -1,6 +1,5 @@
 library(tidyverse)
 library(RSQLite)
-library(unixtools)
 library(data.table)
 library(maditr)
 library(lvplot)
