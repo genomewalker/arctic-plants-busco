@@ -1,12 +1,12 @@
-require(dplyr)
-
+library(dplyr)
+library(data.table)
+library(maditr)
 # Modification from https://www.biorxiv.org/content/10.1101/295352v2
 create_aln_vector <- function(start, end, len) {
   v <- vector(length = len)
   v[start:end] <- 1
   v
 }
-
 
 calculate_subject_coverage <- function(X){
   X <- X %>% select(start, end, len)
@@ -23,6 +23,18 @@ calculate_subject_coverage <- function(X){
          reads = nrow(X))
 }
 
+calculate_subject_coverage_dt <- function(X){
+  depths = pmap(X, create_aln_vector) %>% simplify2array() %>% t() %>% colSums();
+  subject_len = X$len %>% unique();
+  cov = length(depths[depths != 0])/subject_len;
+  depth_mean = mean(depths);
+  depth_median = median(depths);
+  depth_sd = sd(depths);
+  depth_ratio = depth_sd/depth_mean;
+  reads = nrow(X);
+  list(cov = cov, depth_mean = depth_mean, depth_median = depth_median, depth_sd = depth_sd, depth_ratio = depth_ratio, reads = reads)
+}
+
 famli_in_r <- function(X, scale = 0.9, iters = 10){
   suppressWarnings({
     suppressMessages({
@@ -32,38 +44,45 @@ famli_in_r <- function(X, scale = 0.9, iters = 10){
         iter <- 0
       )
       
+      X <- as.data.table(X)
+      
+      key_cols <- c("label","query")
+      setkeyv(X, key_cols)
+      
       cat(paste0("Running Iter: ", iter + 1))
+      
       w_bits <- X %>% 
-        select(all_of(col_names)) %>%
-        group_by(query, label) %>%
-        mutate(W = bits/sum(bits),
-               n_aln = n()) 
+        dt_select(col_names) %>%
+        let(W = bits/sum(bits),
+            n_aln = .N, by = list(query, label))
       
       tot_bits <- X %>% 
-        select(label, theader, bits) %>%
-        group_by(label, theader) %>%
-        summarise(tot_bits = sum(bits),
-                  n_aln_prot = n())
+        dt_select(label, theader, bits) %>%
+        dt_summarise(tot_bits = sum(bits),
+                     n_aln_prot = .N, by = list(label, theader))
       
       l_bits <- w_bits %>% 
-        filter(n_aln > 1) %>%
-        inner_join(tot_bits) %>%
-        mutate(L = W * tot_bits) %>%
-        group_by(label, query) %>% 
-        mutate(max_L = max(L),
-               Keep_L = ifelse(L < scale * max_L, FALSE, TRUE)) %>%
-        ungroup()
+        dt_filter(n_aln > 1) %>%
+        dt_inner_join(tot_bits) %>%
+        let(L = W * tot_bits) %>%
+        let(max_L = max(L),
+            Keep_L = ifelse(L < scale * max_L, FALSE, TRUE), by = list(label, query)) %>% as_tibble()
+      
       l_bits_sel <- l_bits  %>%
-        ungroup() %>%
         arrange(label, query) %>%
         filter(Keep_L == TRUE)
+      
       keep_processing_n <- l_bits_sel %>% 
         group_by(label, query) %>% 
         add_count(name = "refined_n") %>% 
         filter(refined_n > 1) %>% nrow()
+      
       cat(paste0(" Left: ", keep_processing_n, "... Filtering done\n") )
+      
       keep_processing <- keep_processing_n == 0
+      
       iter <- iter + 1
+      
       if (!keep_processing & iter < iters){
         famli_in_r(X = l_bits_sel %>% mutate(iter = iter))
       }else{
@@ -113,8 +132,11 @@ plot_alns <- function(X, title = NULL){
     summarise(mean = mean(depth_median),
               sd = sd(depth_median)) %>%
     ungroup() %>%
-    mutate(n = row_number()) %>%
-    filter(!is.na(sd)) 
+    mutate(n = row_number(),
+           sd = ifelse(is.na(sd), 0, sd))
+  
+  int_diff <- with(int,diff(sd)/diff(n)) %>%
+    enframe(name = "step", value = "diff")   
   
   plot_int <- ggplot(int, aes(n, sd)) +
     geom_line() +
@@ -122,14 +144,34 @@ plot_alns <- function(X, title = NULL){
     xlab("Depth CV interval") +
     ylab("Median depth SD")
   
-  int <- int[with(int,diff(sd)/diff(n)) %>%
-               enframe(name = "step", value = "diff") %>% 
-               filter(diff == 0) %>% 
-               slice(which.min(step)) %>%
-               head(1) %>% .$step,]
+  int_zeroes <- int_diff %>% 
+    filter(diff == 0) 
+  
+  find_longest_zeroes <- function(X, int_diff) {
+    tibble(step = X, 
+           median = median(int_diff %>% filter(step >= X) %>% .$diff),
+           mean = mean(int_diff %>% filter(step >= X) %>% .$diff),
+           n = length(int_diff %>% filter(step >= X) %>% .$diff))
+  }
+  
+  idx <- map_dfr(int_zeroes1$step, find_longest_zeroes, int_diff = int_diff1) %>%
+    filter(median == 0) %>%
+    arrange(step) %>%
+    head(1)
+  
+  if(is_empty(idx$step)){
+    int_sel <- int[with(int,diff(sd)/diff(n)) %>%
+                 enframe(name = "step", value = "diff") %>%
+                 filter(diff == 0) %>%
+                 slice(which.min(step)) %>%
+                 head(1) %>% .$step,]
+  }else{
+    int_sel <- int[idx$step, ]
+  }
+  
   
   cutoff <- X_int %>%
-    filter(ints == int$ints) %>%
+    filter(ints == int_sel$ints) %>%
     slice(which.min(depth_ratio)) %>%
     head(1) %>%
     .$depth_ratio
@@ -180,5 +222,5 @@ plot_alns <- function(X, title = NULL){
     ylab("Mean coverage depth") +
     ggtitle(title)
   
-  list(mode = mode_val, cutoff_val = cutoff,  X_mode = X_mode, X_cut = X_cut, plot_mode = plot_mode, plot_box = plot_box, n_prots = nrow(protein_order), plot_int = plot_int)
+  list(mode = mode_val, cutoff_val = cutoff,  X_mode = X_mode, X_cut = X_cut, plot_mode = plot_mode, plot_box = plot_box, n_prots = nrow(protein_order), plot_int = plot_int, depth_int = int, depth_int_diff = int_diff)
 }
