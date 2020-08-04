@@ -98,6 +98,7 @@ resolve_multi_mappings <- function(alns, scale = 0.9, iters = 10){
   # Resolved multi mapping using ML approach from FAMLI
   suppressWarnings({
     suppressMessages({
+      col_names <- c("label", "query", "theader", "pident", "alnlen", "mismatch", "gapopen", "qstart", "qend", "tstart", "tend", "evalue", "bits", "qlen", "tlen")
       multi_mapped <- famli_in_r(X = alns, scale = scale, iters = iters)
       alns %>%
         anti_join(multi_mapped %>% select(label, query) %>% distinct()) %>%
