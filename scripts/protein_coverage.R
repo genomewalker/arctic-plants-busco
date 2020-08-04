@@ -6,8 +6,6 @@ library(maditr)
 library(lvplot)
 
 source("libs/libs.R")
-Sys.setenv(RENV_PATHS_CACHE = "/vol/cloud/antonio/tmp/renv/cache")
-unixtools::set.tempdir(path.expand("/vol/cloud/antonio/tmp"))
 
 wdir <- "/vol/cloud/antonio/geogenetics/plant-arctic/results/mg_TO"
 
