@@ -49,6 +49,8 @@ famli_in_r <- function(X, scale = 0.9, iters = 10){
       key_cols <- c("label","query")
       setkeyv(X, key_cols)
       
+      col_names <- c("label", "query", "theader", "pident", "alnlen", "mismatch", "gapopen", "qstart", "qend", "tstart", "tend", "evalue", "bits", "qlen", "tlen")
+      
       cat(paste0("Running Iter: ", iter + 1))
       
       w_bits <- X %>% 
