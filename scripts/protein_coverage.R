@@ -23,7 +23,6 @@ busco_viridiplantae_multi_covs <- busco_viridiplantae_multi %>%
   dt_select(label, theader, tstart, tend, tlen) %>%
   setNames(c("label", "protein", "start", "end", "len")) %>%
   let(strand = "+") %>%
-  arrange(protein, start, end) %>%
   setkeyv(., c("label", "protein"))
 
 busco_viridiplantae_multi_covs <- get_protein_coverage(busco_viridiplantae_multi_covs)
@@ -54,7 +53,6 @@ protein_traits_multi_covs <- protein_traits_multi %>%
   dt_select(label, theader, tstart, tend, tlen) %>%
   setNames(c("label", "protein", "start", "end", "len")) %>%
   let(strand = "+") %>%
-  arrange(protein, start, end) %>%
   setkeyv(., c("label", "protein"))
 
 protein_traits_multi_covs <- get_protein_coverage(protein_traits_multi_covs)
@@ -98,14 +96,14 @@ protein_traits_reads_mapped <- protein_traits_multi_covs %>%
 busco_viridiplantae_reads_mapped %>%
   bind_rows(busco_fungi_reads_mapped) %>%
   bind_rows(protein_traits_reads_mapped) %>%
-  mutate(class = fct_relevel(class, c("Traits", "Fungi", "Viridiplantae"))) %>%
+  mutate(class = fct_relevel(class, rev(c("Traits", "Fungi", "Viridiplantae")))) %>%
   ggplot(aes(class, prop_reads_mapped)) +
   geom_lv(size = 0.5, width.method = "height", color = "#404040", width = 0.5, alpha = 1) +
   scale_y_log10(labels = scales::percent) +
-  ggpubr::rotate() +
   theme_light() +
-  xlab("Reads mapped") +
-  ylab("")
+  ylab("Reads mapped") +
+  xlab("") +
+  coord_fixed()
 
 # Saving tables -----------------------------------------------------------
 # Search results
