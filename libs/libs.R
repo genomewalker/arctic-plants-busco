@@ -121,14 +121,19 @@ estimate_mode <- function(x) {
   }
 }
 
-plot_alns <- function(X, title = NULL){
+process_alignments <- function(X, title = NULL){
+  
   mode_val <- estimate_mode(X$depth_ratio)
-  X_mode <- X %>% 
+  
+  X_mode_solid <- X %>% 
     filter(depth_ratio < mode_val) 
+  
+  X_mode_weak <- X %>% 
+    filter(depth_ratio >= mode_val) 
   
   X_int <- X %>%
     select(label, protein, depth_median, depth_ratio) %>%
-    mutate(ints = cut(depth_ratio, breaks= seq(0, max(ceiling(depth_ratio)), by = 0.1), include.lowest = TRUE, right = FALSE)) 
+    mutate(ints = cut(depth_ratio, breaks = seq(0, max(ceiling(depth_ratio)), by = 0.1), include.lowest = TRUE, right = FALSE)) 
   
   int <- X_int %>%
     group_by(ints) %>%
@@ -140,12 +145,6 @@ plot_alns <- function(X, title = NULL){
   
   int_diff <- with(int,diff(sd)/diff(n)) %>%
     enframe(name = "step", value = "diff")   
-  
-  plot_int <- ggplot(int, aes(n, sd)) +
-    geom_line() +
-    theme_light() +
-    xlab("Depth CV interval") +
-    ylab("Median depth SD")
   
   int_zeroes <- int_diff %>% 
     filter(diff == 0) 
@@ -162,7 +161,7 @@ plot_alns <- function(X, title = NULL){
     arrange(step) %>%
     head(1)
   
-  if(is_empty(idx$step)){
+  if (is_empty(idx$step)){
     int_sel <- int[with(int,diff(sd)/diff(n)) %>%
                      enframe(name = "step", value = "diff") %>%
                      filter(diff == 0) %>%
@@ -172,26 +171,34 @@ plot_alns <- function(X, title = NULL){
     int_sel <- int[idx$step, ]
   }
   
-  
   cutoff <- X_int %>%
     filter(ints == int_sel$ints) %>%
     slice(which.min(depth_ratio)) %>%
     head(1) %>%
     .$depth_ratio
   
-  X_cut <- X %>% 
+  X_cut_solid <- X %>% 
     filter(depth_ratio < cutoff) 
   
-  plot_mode <- ggplot() +
+  X_cut_weak <- X %>% 
+    filter(depth_ratio >= cutoff) 
+  
+  plot_int <- ggplot(int, aes(n, sd)) +
+    geom_vline(xintercept = idx$step, color = "#E85A5B", size = 1) +
+    geom_line(color = "#454345", size = 1) +
+    theme(panel.background = element_blank()) +
+    xlab("Depth CV interval") +
+    ylab("Median depth SD")
+  
+  plot_cut <- ggplot() +
     geom_point(data = X, aes(depth_ratio, depth_median), shape = 21, size = 2, fill = "grey", color = "black") +
-    geom_point(data = X_cut, aes(depth_ratio, depth_median), fill = "#70B9E4", shape = 21, size = 2, color = "black") +
+    geom_point(data = X_cut_solid, aes(depth_ratio, depth_median), fill = "#70B9E4", shape = 21, size = 2, color = "black") +
     scale_x_log10() +
-    theme_light() +
     theme(panel.background = element_blank()) +
     xlab("Depth coefficient of variation") +
     ylab("Median depth")
   
-  protein_order <- X_cut %>%
+  protein_order <- X_cut_solid %>%
     group_by(protein) %>%
     mutate(median_depth = (median(depth_mean)),
            median_depth_log = log10(median(depth_mean))) %>%
@@ -200,7 +207,7 @@ plot_alns <- function(X, title = NULL){
     distinct() %>%
     arrange(desc(median_depth_log))
   
-  X_dm <- X_cut %>%
+  X_dm <- X_cut_solid %>%
     mutate(protein = fct_relevel(protein, protein_order$protein)) %>%
     droplevels()
   
@@ -216,7 +223,6 @@ plot_alns <- function(X, title = NULL){
                  size = 1) +
     #scale_y_continuous(labels = scales::trans_format("log10")) +
     scale_y_continuous(labels= formatBack) +
-    theme_light() +
     theme(axis.text.x = element_blank(),
           axis.ticks.x = element_blank(),
           panel.grid = element_blank(),
@@ -225,7 +231,19 @@ plot_alns <- function(X, title = NULL){
     ylab("Mean coverage depth") +
     ggtitle(title)
   
-  list(mode = mode_val, cutoff_val = cutoff,  X_mode = X_mode, X_cut = X_cut, plot_mode = plot_mode, plot_box = plot_box, n_prots = nrow(protein_order), plot_int = plot_int, depth_int = int, depth_int_diff = int_diff)
+  list(depth_ratio_mode = mode_val, 
+       depth_ratio_cutoff = cutoff,  
+       alns_filtered_depth_ratio_mode_solid = X_mode_solid,
+       alns_filtered_depth_ratio_mode_weak = X_mode_weak,
+       alns_filtered_depth_ratio_cutoff_solid = X_cut_solid, 
+       alns_filtered_depth_ratio_cutoff_weak = X_cut_weak, 
+       plot_depth_ratio_cutoff = plot_cut, 
+       plot_boxplots = plot_box, 
+       n_proteins = nrow(protein_order), 
+       plot_intervals_depth = plot_int, 
+       depth_intervals = int, 
+       depth_intervals_diff = int_diff,
+       solid_protein_mediandepth_ranking = protein_order)
 }
 
 get_protein_coverage <- function(X){
@@ -243,6 +261,35 @@ get_protein_coverage <- function(X){
   return(X)
 }
 
+get_reads_stats <- function(X, type){
+  X %>%
+    select(label, reads) %>%
+    group_by(label) %>%
+    count(sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(sample_stats) %>%
+    mutate(prop_reads_mapped = n/num_seqs,
+           type = type)
+}
 
+get_protein_stats <- function(X, type){
+  protein_counts <- X %>%
+    select(label, protein) %>%
+    group_by(label) %>%
+    count(name = "counts") %>%
+    mutate(type = type) %>%
+    ungroup()
+  unique_proteins <- X$protein %>% uniqueN()
+  list(protein_counts = protein_counts, unique_proteins = unique_proteins)
+}
 
+get_protein_sets <- function(X, type){
+  solid <- X$alns_filtered_depth_ratio_cutoff_soli$protein %>% unique()
+  weak <- X$alns_filtered_depth_ratio_cutoff_weak$protein %>% unique()
+  tibble(
+    type = type,
+    Solid = setdiff(solid, weak) %>% length(),
+    Weak = setdiff(weak, solid) %>% length(),
+    Shared = intersect(solid, weak) %>% length())
+}
 

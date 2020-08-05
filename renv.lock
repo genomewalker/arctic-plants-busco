@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "3.6.2",
+    "Version": "3.6.3",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -127,6 +127,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "543776ae6848fde2f48ff3816d0628bc"
+    },
+    "beeswarm": {
+      "Package": "beeswarm",
+      "Version": "0.2.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "dc538ec663e38888807ef3034489403d"
     },
     "bit": {
       "Package": "bit",
@@ -345,6 +352,25 @@
       "Repository": "CRAN",
       "Hash": "b8cff1d1391fd1ad8b65877f4c7f2e53"
     },
+    "ggbeeswarm": {
+      "Package": "ggbeeswarm",
+      "Version": "0.6.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "dd68b9b215b2d3119603549a794003c3"
+    },
+    "gghalves": {
+      "Package": "gghalves",
+      "Version": "0.1.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "erocoar",
+      "RemoteRepo": "gghalves",
+      "RemoteRef": "master",
+      "RemoteSha": "39554608ad24fbda0a34f5011c6753f4bc7466d0",
+      "Hash": "972c71d2ab43d1733490aae562286c12"
+    },
     "ggplot2": {
       "Package": "ggplot2",
       "Version": "3.3.2",
@@ -379,6 +405,18 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "3e9b8a51dfdc95395632b25ce3ce8ebc"
+    },
+    "ggthemr": {
+      "Package": "ggthemr",
+      "Version": "1.1.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "ggthemr",
+      "RemoteUsername": "cttobin",
+      "RemoteRef": "master",
+      "RemoteSha": "10eb50a78047e1eb0b9517004f9f7fc34702f539",
+      "Hash": "4c92e5201323d3f2c20513497efff883"
     },
     "glue": {
       "Package": "glue",
@@ -916,6 +954,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "5ba3006888ac62fd5e97b208d00d3317"
+    },
+    "vipor": {
+      "Package": "vipor",
+      "Version": "0.4.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "ea85683da7f2bfa63a98dc6416892591"
     },
     "viridisLite": {
       "Package": "viridisLite",
